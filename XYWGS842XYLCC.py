@@ -5,7 +5,8 @@ import csv
 
 # Read the csv file
 #AOI_gridcell_file = 'FluxNetNA.csv'
-AOI_gridcell_file = 'FluxNA_xcyc.csv'
+#AOI_gridcell_file = 'FluxNA_xcyc.csv'
+AOI_gridcell_file = 'MOFLUX_xcyc.csv'
 AOI = AOI_gridcell_file.split('_')[0]
 
 #df = pd.read_csv(AOI_gridcell_file, sep=",", skiprows=1, names = ['site', 'yc', 'xc'], engine='python')
