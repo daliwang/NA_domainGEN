@@ -25,7 +25,9 @@ def main():
         exit(0)
 
     input_path = args[0]
+    if not input_path.endswith("/"): input_path=input_path+'/'
     output_path = args[1]
+    if not output_path.endswith("/"): output_path=output_path+'/'
     AOI_gridID_file = args[2]
     AOI=AOI_gridID_file.split("_")[0]
 
@@ -41,13 +43,13 @@ def main():
         print("Error: Invalid AOI_points_file, see help.")
 
     # save to the 1D domain file
-    AOIsurfdata = str(AOI)+'surfdata.nc'
+    AOIsurfdata = output_path+str(AOI)+'_surfdata_Daymet4.1km.1d.v1.nc'
 
     # check if file exists then delete it
     if os.path.exists(AOIsurfdata):
         os.remove(AOIsurfdata)
 
-    source_file = 'Daymet4.1km.1d.surfdata_v1_part1.nc'
+    source_file = input_path+'surfdata_Daymet4.1km.1d.v1.nc'
     dst = nc.Dataset(AOIsurfdata, 'w', format='NETCDF4')
 
     # open the 1D domain data
@@ -87,7 +89,7 @@ def main():
             # Copy variable attributes
             dst[name].setncatts(src[name].__dict__)
             # Copy the data
-            dst[name][:] = src[name][:]
+            dst[name][...] = src[name][...]
 
         else:
             if len(variable.dimensions) == 1:

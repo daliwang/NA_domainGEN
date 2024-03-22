@@ -34,31 +34,36 @@ def find_nearest_points(listA, listB):
 
 def main():
 
+    args = sys.argv[1:]
     # Check the number of arguments
-    if len(sys.argv) != 2  or sys.argv[1] == '--help':  # sys.argv includes the script name as the first argument
-        print("Example use: python AOI_domainGEN.py <points_file_name>")
-        print(" <points_file_name>:  <AOI_domain>_gridID.csv / <AOI_domain>_xcyc.csv / <AOI_domain>_xcyc_LCC.csv,")
+    if len(sys.argv) != 4  or sys.argv[1] == '--help':  # sys.argv includes the script name as the first argument
+        print("Example use: python AOI_domainGEN.py <input_path> <output_path> <AOI_points_file>")
+        print(" <input_path>: path to the 1D source data directory")
+        print(" <output_path>:  path for the 1D AOI output data directory")
+        print(" <AOI_points_file>:  <AOI>_gridID.csv or <AOI>_xcyc.csv or <AOI>_xcyc_lcc.csv")
+        print(" The code uses NA forcing to generation 1D AOI domain.nc")      
         exit(0)
 
-    args = sys.argv[1:]
-    AOI_gridcell_file = args[0]  # user provided gridcell csv file
+    input_path = args[0]
+    output_path = args[1]
+    AOI_gridcell_file = args[2]
     AOI=AOI_gridcell_file.split("_")[0]
 
     if AOI_gridcell_file.endswith('gridID.csv'):
         user_option = 1
     if AOI_gridcell_file.endswith('xcyc.csv'):
         user_option = 2
-    if AOI_gridcell_file.endswith('xcyc_LCC.csv'):
+    if AOI_gridcell_file.endswith('xcyc_lcc.csv'):
         user_option = 3
 
     # save to the 1D domain file
-    AOIdomain = str(AOI)+'domain.nc'
+    AOIdomain = str(AOI)+'_domain.lnd.Daymet4.1km.1d.c231120.nc'
 
     # check if file exists then delete it
     if os.path.exists(AOIdomain):
         os.remove(AOIdomain)
 
-    source_file = 'Daymet4.1km.1d.domain.nc'
+    source_file = 'domain.lnd.Daymet4.1km.1d.c231120.nc'
     dst = nc.Dataset(AOIdomain, 'w', format='NETCDF4')
 
     # open the 1D domain data
@@ -102,7 +107,7 @@ def main():
         #check the boundaries
         for i, pt in enumerate(AOI_points):
             pt_x, pt_y = pt
-            print (pt_x, NA_xc_min, NA_xc_min.shape)
+            #print (pt_x, NA_xc_min, NA_xc_min.shape)
             if pt_x > NA_xc_max or pt_x < NA_xc_min or pt_y > NA_yc_max or pt_y < NA_yc_min:
                 AOI_points.remove(pt)
                 print(f"point {i} ({pt_x},{pt_y}) is out of Daymet domain and is removed")
@@ -117,10 +122,10 @@ def main():
         _, domain_idx = tree.query(AOI_points_arr, k=1)
 
     if user_option == 3: # xc_LCC and yc_LCC is used directly
-        #AOI_gridcell_file = AOI+'_XYLCC.csv'  # user provided gridcell csv file  (xc_LLC, yc_LLC) 
+        #AOI_gridcell_file = AOI+'_XYLCC.csv'  # user provided gridcell csv file  (xc_LCC, yc_LCC) 
         df = pd.read_csv(AOI_gridcell_file, sep=",", skiprows=1, names = ['xc_LCC', 'yc_LCC'], engine='python')
 
-        #read in x, y coordinate (in LLC projection)
+        #read in x, y coordinate (in LCC projection)
         AOI_points = list(zip(df['xc_LCC'], df['yc_LCC']))
         #AOI_points = list(zip(myxc_lcc, myyc_lcc))
 
@@ -139,7 +144,7 @@ def main():
         #check the boundaries
         for i, pt in enumerate(AOI_points):
             pt_x, pt_y = pt
-            print (pt_x, NA_xc_LCC_min, NA_xc_LCC_min.shape)
+            #print (pt_x, NA_xc_LCC_min, NA_xc_LCC_min.shape)
             if pt_x > NA_xc_LCC_max or pt_x < NA_xc_LCC_min or pt_y > NA_yc_LCC_max or pt_y < NA_yc_LCC_min:
                 AOI_points.remove(pt)
                 print(f"point {i} ({pt_x},{pt_y}) is out of Daymet domain and is removed")
@@ -155,7 +160,8 @@ def main():
     #domain_idx = np.sort(domain_idx).squeeze()
 
     print("gridID_idx", domain_idx[0:20])
-    #np.savetxt("AOIgridId_idx.csv", domain_idx[0:100], delimiter=",", fmt='%d')
+    #if not user_option==1:
+    #    np.savetxt("AOI_gridId.csv", src['gridID'][...,domain_idx], delimiter=",", fmt='%d\n')
 
     # Copy the global attributes from the source to the target
     for name in src.ncattrs():
@@ -178,9 +184,9 @@ def main():
         
         if (name != 'lambert_conformal_conic'):
             if (variable.dimensions[-1] != 'ni'):
-                dst[name][:] = src[name][:]
+                dst[name][...] = src[name][...]
             else:
-                dst[name][:] = src[name][0][domain_idx]
+                dst[name][...] = src[name][...,domain_idx]
            
         # Copy the variable attributes
         for attr_name in variable.ncattrs():

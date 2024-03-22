@@ -12,69 +12,62 @@ from datetime import datetime
 # Get current date
 current_date = datetime.now()
 # Format date to mmddyyyy
-formatted_date = current_date.strftime('%m%d%Y')
+formatted_date = current_date.strftime('%m-%d-%Y')
 
-def AOI_forcing_save_1d(input_path, file, AOI, AOI_points, var_name, period, time, output_path):
+def AOI_forcing_save_1d(input_path, file, AOI, AOI_points, output_path):
     # Open a new NetCDF file to write the data to. For format, you can choose from
     # 'NETCDF3_CLASSIC', 'NETCDF3_64BIT', 'NETCDF4_CLASSIC', and 'NETCDF4'
     source_file = input_path + '/'+ file
     src = nc.Dataset(source_file, 'r', format='NETCDF4')
 
-    #total_gridcell = src.dimensions['gridcell'].size
-    total_time = src.dimensions['time'].size
-
-    #print('total timesteps is :' + str(total_timesteps))
-    if time == -1:
-        time = total_time
-
     #read gridIDs
-    grid_ids = src['gridID']    # gridID for NA
-
-    # read forcing data
-    data = src[var_name][0:time, :] # read (time, gridcell) format
-    print(data.shape)
-    # create the mask for data subsetting using AOI points
-    # TODO
-    #AOI_mask = np.where(~np.isnan(mask), 1, np.nan)
-    #AOI_landcells = len(AOI_points)
-
-    # Create a boolean mask
-    AOI_mask = np.isin(grid_ids, AOI_points)
-
-    # You can apply the same mask to this array
-    masked_data = data[:, AOI_mask]
-
-    # extract the data over land gridcells into a new data_arr for netcdf  
-    data_arr = np.copy(masked_data)
-    print(masked_data.shape)
-    # convert local grid_id_lists into an array
-    #grid_id_arr = np.array(grid_ids)
-
-    dst_name = output_path + '/'+ AOI + '_clmforc.Daymet4.1km.1d.' + var_name + '.' + period +'.nc'
+    grid_ids = src['gridID'][...]    # gridID for all NA
+ 
+    #  
+    AOI_idx = np.where(np.in1d(grid_ids, AOI_points))[0]
+    
+    #
+    dst_name = output_path + '/'+ AOI + '/'+file
+    # check if file exists then delete it
+    if not os.path.exists(output_path+'/'+AOI): 
+        os.makedirs(output_path+'/'+AOI)
+    elif os.path.exists(dst_name):
+        os.remove(dst_name)
 
     # Open a new NetCDF file to write the data to. For format, you can choose from
     # 'NETCDF3_CLASSIC', 'NETCDF3_64BIT', 'NETCDF4_CLASSIC', and 'NETCDF4'
     dst = nc.Dataset(dst_name, 'w', format='NETCDF4')
-    dst.title = var_name + '('+period+') creted from '+ input_path +' on ' +formatted_date
+    dst.title = './'+ AOI + '/'+file+' creted from '+ source_file +' on ' +formatted_date
 
-    # create the gridIDs, lon, and lat variable
-    x = dst.createDimension('gridcell', len(AOI_points))
-    x = dst.createDimension('time', time)
+    # Copy the global attributes from the source to the target
+    for name in src.ncattrs():
+        dst.setncattr(name, src.getncattr(name))
 
-    w_nc_var = dst.createVariable('gridID', np.int32, ('gridcell',))
-    #  set variable attributes
-    w_nc_var.long_name = "gridId in the "+AOI+ " domain" ;
-    w_nc_var.decription = "Land gridcells within the "+ AOI +" domain" ;
-    dst.variables['gridID'][:] = AOI_points
+    # Copy the dimensions from the source to the target
+    for name, dimension in src.dimensions.items():
+        if name != 'ni' and name != 'gridcell':
+            dst.createDimension(
+                name, (len(dimension) if not dimension.isunlimited() else None))
+        else:
+            # Update the 'ni' dimension with the length of the list
+            #dst.dimensions['ni'].set_length(len(AOI_points))
+            if name == 'ni' or name == 'gridcell': 
+                ni = dst.createDimension(name, AOI_points.size)
 
     # Copy the variables from the source to the target
     for name, variable in src.variables.items():
-        if (name == var_name):
-            print(variable.datatype)
-            w_nc_var = dst.createVariable(var_name, np.float32, ('time', 'gridcell'))
-            dst.variables[var_name][:] =data_arr
-            for attr_name in variable.ncattrs():
-                dst[name].setncattr(attr_name, variable.getncattr(attr_name))
+        x = dst.createVariable(name, variable.datatype, variable.dimensions)   
+        print(name, variable.dimensions)
+        
+        if (name != 'lambert_conformal_conic'):
+            if variable.dimensions[-1] != 'ni' and variable.dimensions[-1] != 'gridcell':
+                dst[name][...] = src[name][...]
+            else:
+                dst[name][...] = src[name][..., AOI_idx]
+           
+        # Copy the variable attributes
+        for attr_name in variable.ncattrs():
+            dst[name].setncattr(attr_name, variable.getncattr(attr_name))
         
     src.close()  # close the source file 
     dst.close()  # close the new file        
@@ -103,22 +96,18 @@ def main():
         exit(0)
 
     input_path = args[0]
+    if not input_path.endswith("/"): input_path=input_path+'/'
     output_path = args[1]
+    if not output_path.endswith("/"): output_path=output_path+'/'
     AOI_gridID_file = args[2]
     AOI=AOI_gridID_file.split("_")[0]
 
-    test = 1  # If it is test case 
-    if test == 1:
-        time = 1
-    else
-        time = -1
-
-    if (AOI_gridID_file.endswith(gridID.csv)):
+    if (AOI_gridID_file.endswith('gridID.csv')):
         #AOI_gridcell_file = AOI+'_gridID.csv'  # user provided gridcell IDs
         df = pd.read_csv(AOI_gridID_file, sep=",", skiprows=1, names = ['gridID'])
         #read gridIds
         AOI_points = np.array(df['gridID'])
-    elif filename.endswith('domain.nc'):
+    elif AOI_gridID_file.endswith('domain.nc'):
         src = nc.Dataset(AOI_gridID_file, 'r')
         AOI_points = src['gridID'][:]
     else:
@@ -127,13 +116,10 @@ def main():
     files_nc = get_files(input_path)
 
     for f in files_nc: 
-        var_name = f[23:-11]
-        period = f[-10:-3]
-        print(var_name, period)
-        print('processing '+ var_name + '(' + period + ') in the file ' + f )
+        if (not f.startswith('clmforc')): continue
+        print('processing '+ f )
         start = process_time() 
-        #forcing_save_1dNA(input_path, f, var_name, period, time, output_path)
-        AOI_forcing_save_1d(input_path, f, AOI, AOI_points, var_name, period, time, output_path)
+        AOI_forcing_save_1d(input_path, f, AOI, AOI_points, output_path)
         end = process_time()
         print("Generating 1D forcing data for "+AOI+ " domain takes {}".format(end-start))
 
