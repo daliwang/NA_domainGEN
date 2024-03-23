@@ -470,6 +470,11 @@ lat = r_nc_fid['lat']
 XC, YC = np.meshgrid(lon, lat)  # the array is (y,x) to match the mask
     #YX = np.array([Y, X])
     #print('total timesteps is :' + str(total_timesteps))
+
+# Round to 2 decimal places
+XC = np.around(XC, 4)
+YC = np.around(YC, 4)
+
 if timesteps == -1:
     timesteps = total_timesteps
 data = r_nc_fid[var_name][0:timesteps, :, :] # read (timestep, y, x) format
