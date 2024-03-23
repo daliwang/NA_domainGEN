@@ -484,8 +484,8 @@ XC, YC = np.meshgrid(lon, lat)  # the array is (y,x) to match the mask
     #print('total timesteps is :' + str(total_timesteps))
 
 # Round to 2 decimal places
-XC = np.around(XC, 4)
-YC = np.around(YC, 4)
+XC = np.around(XC, 8)
+YC = np.around(YC, 8)
 
 if timesteps == -1:
     timesteps = total_timesteps
@@ -497,7 +497,7 @@ end = process_time()
 print("Reading " + file_name + " takes  {}".format(end-start))
 
 start = process_time()
-#domain_save_2dNA(output_path, total_rows, total_cols, data, lon, lat, XC, YC)
+domain_save_2dTES(output_path, total_rows, total_cols, data, lon, lat, XC, YC)
 end = process_time()
 print("Saving 2D domain data takes {}".format(end-start))
     
