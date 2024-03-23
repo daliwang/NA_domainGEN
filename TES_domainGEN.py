@@ -11,7 +11,7 @@ from time import process_time
 from pyproj import Proj
 from pyproj import Transformer
 from pyproj import CRS
-
+import datetime
 
 def calculate_area(xv0, yv0, xv1, yv1, xv2, yv2, xv3, yv3):
 
@@ -107,7 +107,13 @@ def domain_save_1dTES(output_path, total_rows, total_cols, data, lon, lat, XC, Y
     # total_rows and total_cols are rows and cols from 2D Forcing dataset
     # lon, lat are 1D arrays
     # XC, YC are grid meshes that created using lon and Lat
-    
+   
+    # Get current date
+    current_date = datetime.datetime.now()
+
+    # Format date as yymmdd
+    date_string = current_date.strftime('%y%m%d')
+
     #Proj4: +proj=lcc +lon_0=-100 +lat_1=25 +lat_2=60 +k=1 +x_0=0 +y_0=0 +R=6378137 +f=298.257223563 +units=m  +no_defs
     geoxy_proj_str = "+proj=lcc +lon_0=-100 +lat_0=42.5 +lat_1=25 +lat_2=60 +x_0=0 +y_0=0 +R=6378137 +f=298.257223563 +units=m +no_defs"
     geoxyProj = CRS.from_proj4(geoxy_proj_str)
@@ -161,7 +167,7 @@ def domain_save_1dTES(output_path, total_rows, total_cols, data, lon, lat, XC, Y
     XC_LCC_arr = XC_LCC[masked]
     YC_LCC_arr = YC_LCC[masked]
     
-    file_name = output_path + 'domain.lnd.Daymet4.TESSFA.4km.1d.c231120.nc'
+    file_name = output_path + 'domain.lnd.Daymet4.TESSFA.4km.1d.c' + date_string + '.nc'
     print("The domain file is " + file_name)
 
     # Open a new NetCDF file to write the domain information. For format, you can choose from
@@ -299,6 +305,12 @@ def domain_save_2dTES(output_path, total_rows, total_cols, data, lon, lat, XC, Y
     Txy2lonlat = Transformer.from_proj(geoxyProj, lonlatProj, always_xy=True)
     Tlonlat2xy = Transformer.from_proj(lonlatProj, geoxyProj, always_xy=True)
 
+    # Get current date
+    current_date = datetime.datetime.now()
+
+    # Format date as yymmdd
+    date_string = current_date.strftime('%y%m%d')
+
     XC_LCC, YC_LCC = Tlonlat2xy.transform(XC,YC)
     
     # add the gridcell IDs.
@@ -330,7 +342,7 @@ def domain_save_2dTES(output_path, total_rows, total_cols, data, lon, lat, XC, Y
 
     landfrac = mask.astype(float)*1.0
 
-    file_name = output_path + 'domain.lnd.Daymet4.TESSFA.4km.2d.c231120.nc'
+    file_name = output_path + 'domain.lnd.Daymet4.TESSFA.4km.2d.c'+ date_string + '.nc'
     print("The 2D domain file is " + file_name)
 
     # Open a new NetCDF file to write the domain information. For format, you can choose from
