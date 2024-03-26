@@ -18,7 +18,7 @@ def main():
     # Check the number of arguments
     if len(sys.argv) != 4  or sys.argv[1] == '--help':  # sys.argv includes the script name as the first argument
         print("Example use: python AOI_surfdataGEN.py <input_path> <output_path> <AOI_points_file>")
-        print(" <input_path>: path to the 1D source data directory")
+        print(" <input_path>: path to the 1D surfdata source data directory")
         print(" <output_path>:  path for the 1D AOI surface data directory")
         print(" <AOI_points_file>:  <AOI>_gridID.csv or <AOI>_domain.nc")
         print(" The code uses NA forcing to generation 1D AOI forcing")      
