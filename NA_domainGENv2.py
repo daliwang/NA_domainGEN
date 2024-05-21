@@ -94,9 +94,8 @@ def domain_save_1dNA(output_path, total_rows, total_cols, data, lon, lat, XC, YC
     # area in km2 --> in arcrad2
     area_km2 = 1.0 # This is by default
     side_km = math.sqrt(float(area_km2))
-    offset = side_km/2
+    offset = side_km/2 * 1000  # convert to meter
     
-    '''
     lat[lat==90.0]=lat[lat==90.0]-0.00001
     lat[lat==-90.0]=lat[lat==-90.0]-0.00001
     kmratio_lon2lat = np.cos(np.radians(lat))
@@ -104,10 +103,9 @@ def domain_save_1dNA(output_path, total_rows, total_cols, data, lon, lat, XC, YC
     yscalar = side_km/(math.pi*re_km/180.0)
     xscalar = side_km/(math.pi*re_km/180.0*kmratio_lon2lat)
     area = xscalar*yscalar
-    '''
     
-    x_offset = abs((lon[0]-lon[1])/2)
-    y_offset = abs((lat[0]-lat[1])/2)
+    #x_offset = abs((lon[0]-lon[1])/2)
+    #y_offset = abs((lat[0]-lat[1])/2)
     
     # 2d --> 1d, with masked only
     grid_id_arr = grid_ids[masked]
@@ -215,13 +213,13 @@ def domain_save_1dNA(output_path, total_rows, total_cols, data, lon, lat, XC, YC
     w_nc_fid.variables['yv'][3,...] = yv3
 
 
-    area_arcad2, area_km2 = calculate_area(xv0, yv0, xv1, yv1, xv2, yv2, xv3, yv3)
+    #area_arcad2, area_km2 = calculate_area(xv0, yv0, xv1, yv1, xv2, yv2, xv3, yv3)
     
     w_nc_var = w_nc_fid.createVariable('area', np.float64, ('nj','ni'), zlib=True, complevel=5)
     w_nc_var.long_name = 'Area of land gridcells'
     w_nc_var.coordinate = 'xc yc' 
     w_nc_var.units = "radian^2"
-    w_nc_fid.variables['area'][...] = area_arcad2
+    w_nc_fid.variables['area'][...] = area
 
     w_nc_var = w_nc_fid.createVariable('area_LCC', np.float64, ('nj','ni'), zlib=True, complevel=5)
     w_nc_var.long_name = 'Area of land gridcells (Lambert Conformal Conic)'
