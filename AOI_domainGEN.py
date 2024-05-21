@@ -11,7 +11,7 @@ from datetime import datetime
 # Get current date
 current_date = datetime.now()
 # Format date to mmddyyyy
-formatted_date = current_date.strftime('%m%d%Y')
+formatted_date = current_date.strftime('%y%m%d')
 
 # An input csv file that contains the locations of land gridcells in Daymet domain;
 # 1:  land gridcell ID
