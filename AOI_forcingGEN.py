@@ -107,7 +107,7 @@ def main():
         df = pd.read_csv(AOI_gridID_file, sep=",", skiprows=1, names = ['gridID'])
         #read gridIds
         AOI_points = np.array(df['gridID'])
-    elif AOI_gridID_file.endswith('domain.nc'):
+    elif AOI_gridID_file.endswith('.nc'):
         src = nc.Dataset(AOI_gridID_file, 'r')
         AOI_points = src['gridID'][:]
     else:
