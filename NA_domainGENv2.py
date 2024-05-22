@@ -117,6 +117,7 @@ def domain_save_1dNA(output_path, total_rows, total_cols, data, lon, lat, XC, YC
     lon_arr = lon[masked]
     XC_arr = XC[masked]
     YC_arr = YC[masked]
+    area_arr = area[masked]
 
     file_name = output_path + 'domain.lnd.Daymet_NA.1km.1d.c'+ formatted_date + '.nc'
     print("The domain file is " + file_name)
@@ -219,7 +220,7 @@ def domain_save_1dNA(output_path, total_rows, total_cols, data, lon, lat, XC, YC
     w_nc_var.long_name = 'Area of land gridcells'
     w_nc_var.coordinate = 'xc yc' 
     w_nc_var.units = "radian^2"
-    w_nc_fid.variables['area'][...] = area
+    w_nc_fid.variables['area'][...] = area_arr
 
     w_nc_var = w_nc_fid.createVariable('area_LCC', np.float64, ('nj','ni'), zlib=True, complevel=5)
     w_nc_var.long_name = 'Area of land gridcells (Lambert Conformal Conic)'
@@ -285,15 +286,15 @@ def domain_save_2dNA(output_path, total_rows, total_cols, data, lon, lat, XC, YC
     # area in km2 --> in arcrad2
     area_km2 = 1.0
     side_km = math.sqrt(float(area_km2))
-    offset = side_km /2 
+    offset = side_km /2 *1000 # convert to meter
     
-    '''lat[lat==90.0]=lat[lat==90.0]-0.00001
+    lat[lat==90.0]=lat[lat==90.0]-0.00001
     lat[lat==-90.0]=lat[lat==-90.0]-0.00001
     kmratio_lon2lat = np.cos(np.radians(lat))
     re_km = 6378.137
     yscalar = side_km/(math.pi*re_km/180.0)
     xscalar = side_km/(math.pi*re_km/180.0*kmratio_lon2lat)
-    area = xscalar*yscalar'''
+    area = xscalar*yscalar
     
     landfrac = mask.astype(float)*1.0
 
@@ -369,7 +370,7 @@ def domain_save_2dNA(output_path, total_rows, total_cols, data, lon, lat, XC, YC
     w_nc_fid.variables['xv'][3,...] = xv3
     w_nc_fid.variables['yv'][3,...] = yv3
 
-    area_arcad2, area_km2 = calculate_area(xv0, yv0, xv1, yv1, xv2, yv2, xv3, yv3)
+    #area_arcad2, area_km2 = calculate_area(xv0, yv0, xv1, yv1, xv2, yv2, xv3, yv3)
     
     # create the XC, YC variable
     w_nc_var = w_nc_fid.createVariable('xc_LCC', np.float64, ('nj','ni'),zlib=True, complevel=5)
@@ -387,7 +388,7 @@ def domain_save_2dNA(output_path, total_rows, total_cols, data, lon, lat, XC, YC
     w_nc_var.long_name = 'Area of land gridcells (Lambert Conformal Conic)'
     w_nc_var.coordinate = 'xc yc' 
     w_nc_var.units = "radian^2"
-    w_nc_fid.variables['area'][:] = area_arcad2
+    w_nc_fid.variables['area'][:] = area_arr
 
     w_nc_var = w_nc_fid.createVariable('mask', np.int32, ('nj','ni'), zlib=True, complevel=5)
     w_nc_var.long_name = 'mask of land gridcells (1 means land)'
@@ -465,7 +466,7 @@ def main():
 
 
     start = process_time()
-    domain_save_2dNA(output_path, total_rows, total_cols, data, lon, lat, XC, YC)
+    #domain_save_2dNA(output_path, total_rows, total_cols, data, lon, lat, XC, YC)
     end = process_time()
     print("Saving 2D domain data takes {}".format(end-start))
     
