@@ -5,6 +5,7 @@ import numpy as np
 import netCDF4 as nc
 from pyproj import CRS, Transformer
 from datetime import datetime
+from tqdm import tqdm  # Import the tqdm library for the progress bar
 
 def shape2grid(shapefile_path, aoi_name, netcdf_file_path):
     # Get current date
@@ -25,12 +26,28 @@ def shape2grid(shapefile_path, aoi_name, netcdf_file_path):
     else:
         print(f"Shapefile is already in Daymet CRS.")
 
+    # Print the transformed shapefile CRS
+    print('Transformed Shapefile CRS:', shape.crs)
+    # Print the bounds of the shapefile
+    print('Shapefile bounds:', shape.bounds)
+    # Print the geometry of the shapefile
+    print('Shapefile geometry:', shape.geometry)
+    # Print the area of the shapefile
+    print('Shapefile area:', shape.area)
+
+    # Check for duplicate column names in the GeoDataFrame
+    if shape.columns.duplicated().any():
+        print("Duplicate column names found in the shapefile. Renaming columns...")
+        shape.columns = [f"{col}_{i}" if shape.columns.duplicated()[i] else col for i, col in enumerate(shape.columns)]
+    # Save the shapefile into a new shapefile
+    shape.to_file('transformed_shapefilei_daymet.shp')
+
     # Load the NetCDF file
     ds = xr.open_dataset(netcdf_file_path)
 
     # Extract the xc and yc coordinates and the gridID
-    xc = ds['xc'].values.squeeze()  # x-coordinates in Daymet CRS
-    yc = ds['yc'].values.squeeze()  # y-coordinates in Daymet CRS
+    xc = ds['xc_lcc'].values.squeeze()  # x-coordinates in Daymet CRS
+    yc = ds['yc_lcc'].values.squeeze()  # y-coordinates in Daymet CRS
     gridID = ds['gridID'].values.squeeze()  # Grid IDs
 
     # Create a GeoDataFrame for the grid cells
@@ -39,9 +56,15 @@ def shape2grid(shapefile_path, aoi_name, netcdf_file_path):
         'geometry': gpd.points_from_xy(xc, yc)
     }, crs=daymet_crs)
 
-    # Check which grid cells are within the AOI
-    #grid_cells_within_AOI = grid_cells[grid_cells['geometry'].within(shape.union_all())]
-    ''' 
+   # Filter grid cells by yc to reduce the number of candidates
+    x_min, x_max = shape.bounds.minx.min(), shape.bounds.maxx.max()  # Get xc bounds of the shapefile
+    y_min, y_max = shape.bounds.miny.min(), shape.bounds.maxy.max()  # Get yc bounds of the shapefile
+
+    grid_cells_filtered = grid_cells[
+    (grid_cells.geometry.x >= x_min) & (grid_cells.geometry.x <= x_max) &
+    (grid_cells.geometry.y >= y_min) & (grid_cells.geometry.y <= y_max)
+]
+
     # Check which of the filtered grid cells are within the AOI
     print("Checking which grid cells are within the AOI...")
     grid_cells_within_AOI = []
@@ -53,18 +76,6 @@ def shape2grid(shapefile_path, aoi_name, netcdf_file_path):
 
     # Convert the result back to a GeoDataFrame
     grid_cells_within_AOI = gpd.GeoDataFrame(grid_cells_within_AOI, crs=daymet_crs)
-
-    # Get the list of gridIDs that are inside the AOI
-    grid_ids_within_AOI = grid_cells_within_AOI['gridID'].values
-    '''
-
-    # Filter grid cells by yc to reduce the number of candidates
-    y_min, y_max = shape.bounds.miny.min(), shape.bounds.maxy.max()  # Get yc bounds of the shapefile
-    grid_cells_filtered = grid_cells[(yc >= y_min) & (yc <= y_max)]
-
-    # Check which of the filtered grid cells are within the AOI
-    grid_cells_within_AOI = grid_cells_filtered[grid_cells_filtered['geometry'].within(shape.union_all())]
-
 
     # Get the list of gridIDs that are inside the AOI
     grid_ids_within_AOI = grid_cells_within_AOI['gridID'].values
@@ -90,6 +101,7 @@ def shape2grid(shapefile_path, aoi_name, netcdf_file_path):
     dst.close()
 
     print(f"Grid IDs saved to {AOI_gridID}")
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Find gridIDs within a shapefile AOI in the Daymet domain.')
